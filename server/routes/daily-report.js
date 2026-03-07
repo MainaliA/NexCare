@@ -1,13 +1,12 @@
 
-const express = require("express");
-const { generateDailyReport } = require("./llm");
-// If Person A mounts this file from outside routes/, change to require("./routes/llm")
-const { authMiddleware } = require("../middleware/auth-compat");
+import express from "express";
+import { generateDailyReport } from "./llm.js";
+import { authMiddleware, requireRole } from "../middleware/auth.js";
 
 const router = express.Router();
 
 // GET /api/doctor/patients/:id/daily-report
-router.get("/:id/daily-report", authMiddleware, async (req, res) => {
+router.get("/:id/daily-report", authMiddleware, requireRole("doctor"), async (req, res) => {
   try {
     const db = req.app.get("db");
     const doctorUser = req.user; // from auth middleware
@@ -121,4 +120,4 @@ router.get("/:id/daily-report", authMiddleware, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

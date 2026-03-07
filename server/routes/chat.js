@@ -4,21 +4,17 @@
 // Multi-turn conversation grounded in doctor's notes
 // ============================================================
 
-const express = require("express");
-const { v4: uuidv4 } = require("uuid");
-const { chatWithContext, triageSymptom } = require("./llm");
-const { authMiddleware } = require("../middleware/auth-compat");
+import express from "express";
+import { v4 as uuidv4 } from "uuid";
+import { chatWithContext, triageSymptom } from "./llm.js";
+import { authMiddleware, requireRole } from "../middleware/auth.js";
 
 const router = express.Router();
 
 // POST /api/chat — Send a message, get a grounded response
-router.post("/", authMiddleware, async (req, res) => {
+router.post("/", authMiddleware, requireRole("patient"), async (req, res) => {
   try {
     const user = req.user;
-    if (user.role !== "patient") {
-      return res.status(403).json({ error: "Only patients can use the chatbot" });
-    }
-
     const { appointmentId, message, history = [] } = req.body;
 
     if (!appointmentId || !message) {
@@ -134,4 +130,4 @@ router.get("/", authMiddleware, (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

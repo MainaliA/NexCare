@@ -5,7 +5,14 @@
 // Other routes import from here; they never call Claude directly.
 // ============================================================
 
-const demoCache = require("../demo-cache");
+import demoCache, {
+  DEMO_CHECKLIST_MARIA,
+  DEMO_CHAT_RESPONSES,
+  DEMO_DAILY_REPORT_MARIA,
+  DEMO_SUMMARY_MARIA,
+  DEMO_TRIAGE_ESCALATE,
+  DEMO_TRIAGE_EXPECTED,
+} from "../demo-cache.js";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
@@ -16,7 +23,7 @@ const FORCE_DEMO_CACHE = process.env.FORCE_DEMO_CACHE === "true";
 // ------------------------------------------------------------------
 // Base API call — every other function uses this
 // ------------------------------------------------------------------
-async function callClaude(systemPrompt, userMessage, options = {}) {
+export async function callClaude(systemPrompt, userMessage, options = {}) {
   const { maxTokens = 1024, temperature = 0.3 } = options;
 
   const controller = new AbortController();
@@ -66,7 +73,7 @@ async function callClaude(systemPrompt, userMessage, options = {}) {
 }
 
 // For multi-turn chatbot conversations
-async function callClaudeWithHistory(systemPrompt, messages, options = {}) {
+export async function callClaudeWithHistory(systemPrompt, messages, options = {}) {
   const { maxTokens = 1024, temperature = 0.3 } = options;
 
   const controller = new AbortController();
@@ -146,11 +153,11 @@ RULES:
 - If the notes are vague, summarize what's there without guessing
 - End with: "💬 Have questions? Tap **Ask About This** below to chat with your medical assistant."`;
 
-async function generateSummary(diagnosis, prescription, dailyActions, patientName, language) {
+export async function generateSummary(diagnosis, prescription, dailyActions, patientName, language) {
   // Demo-cache shortcircuit
   if (FORCE_DEMO_CACHE) {
     console.log("[LLM] FORCE_DEMO_CACHE: returning cached summary");
-    return demoCache.DEMO_SUMMARY_MARIA;
+    return DEMO_SUMMARY_MARIA;
   }
 
   let prompt = SUMMARY_SYSTEM_PROMPT;
@@ -180,7 +187,7 @@ ${dailyActions}`;
     console.log("[LLM] Falling back to demo-cache summary");
     // If the diagnosis looks like Maria's diabetes case, use the cached version
     if (diagnosis && diagnosis.toLowerCase().includes("diabetes")) {
-      return demoCache.DEMO_SUMMARY_MARIA;
+      return DEMO_SUMMARY_MARIA;
     }
     return `## Summary Temporarily Unavailable\n\nWe're having trouble generating your summary right now. Your doctor's notes have been saved — please check back shortly.\n\n💬 Have questions? Tap **Ask About This** below to chat with your medical assistant.`;
   }
@@ -214,12 +221,12 @@ PATIENT MESSAGE GUIDELINES:
 - "unexpected": Acknowledge without alarming. Note it for doctor review.
 - "escalate": Be calm but clear. Mention the doctor has been alerted. If potentially life-threatening, mention calling 911.`;
 
-async function triageSymptom(symptomDescription, severity, existingDiagnosis, existingPrescription, doctorName) {
+export async function triageSymptom(symptomDescription, severity, existingDiagnosis, existingPrescription, doctorName) {
   // Demo-cache shortcircuit
   if (FORCE_DEMO_CACHE) {
     const isEscalation = /chest|breath|heart|faint|collapse|seizure/i.test(symptomDescription);
     console.log(`[LLM] FORCE_DEMO_CACHE: returning ${isEscalation ? "escalate" : "expected"} triage`);
-    return isEscalation ? demoCache.DEMO_TRIAGE_ESCALATE : demoCache.DEMO_TRIAGE_EXPECTED;
+    return isEscalation ? DEMO_TRIAGE_ESCALATE : DEMO_TRIAGE_EXPECTED;
   }
 
   const userMessage = `EXISTING DIAGNOSIS: ${existingDiagnosis}
@@ -258,10 +265,10 @@ Classify this symptom. Doctor's name for the patient message: Dr. ${doctorName |
     const expectedKeywords = /nausea|tired|fatigue|thirst|stomach|appetite|diarrhea|dizzy/i;
 
     if (escalationKeywords.test(symptomDescription)) {
-      return { ...demoCache.DEMO_TRIAGE_ESCALATE };
+      return { ...DEMO_TRIAGE_ESCALATE };
     }
     if (expectedKeywords.test(symptomDescription)) {
-      return { ...demoCache.DEMO_TRIAGE_EXPECTED };
+      return { ...DEMO_TRIAGE_EXPECTED };
     }
 
     // Unknown symptom — default to escalate for safety
@@ -302,7 +309,7 @@ RULES:
 8. NEVER start with "Based on your doctor's notes" — just answer naturally.`;
 }
 
-async function chatWithContext(message, history, patientName, doctorName, diagnosis, prescription, dailyActions) {
+export async function chatWithContext(message, history, patientName, doctorName, diagnosis, prescription, dailyActions) {
   // Demo-cache shortcircuit
   if (FORCE_DEMO_CACHE) {
     const cachedReply = findCachedChatResponse(message);
@@ -349,7 +356,7 @@ async function chatWithContext(message, history, patientName, doctorName, diagno
 // Helper: fuzzy-match user message against demo-cache chat keys
 function findCachedChatResponse(message) {
   const lower = message.toLowerCase();
-  for (const [keyword, response] of Object.entries(demoCache.DEMO_CHAT_RESPONSES)) {
+  for (const [keyword, response] of Object.entries(DEMO_CHAT_RESPONSES)) {
     if (lower.includes(keyword)) {
       return response;
     }
@@ -376,11 +383,11 @@ End with a status on its own line:
 
 Be direct. No fluff.`;
 
-async function generateDailyReport(input) {
+export async function generateDailyReport(input) {
   // Demo-cache shortcircuit
   if (FORCE_DEMO_CACHE) {
     console.log("[LLM] FORCE_DEMO_CACHE: returning cached daily report");
-    return demoCache.DEMO_DAILY_REPORT_MARIA;
+    return DEMO_DAILY_REPORT_MARIA;
   }
 
   const userMessage = `Generate a daily tracking report:
@@ -404,7 +411,7 @@ TODAY'S DATA:
   } catch (error) {
     console.error("Daily report generation failed:", error);
     console.log("[LLM] Falling back to demo-cache daily report");
-    return demoCache.DEMO_DAILY_REPORT_MARIA;
+    return DEMO_DAILY_REPORT_MARIA;
   }
 }
 
@@ -412,10 +419,10 @@ TODAY'S DATA:
 // FUNCTION 5: PRE-VISIT CHECKLIST (Bonus)
 // ==================================================================
 
-async function generatePreVisitChecklist(diagnosis, prescription) {
+export async function generatePreVisitChecklist(diagnosis, prescription) {
   if (FORCE_DEMO_CACHE) {
     console.log("[LLM] FORCE_DEMO_CACHE: returning cached checklist");
-    return demoCache.DEMO_CHECKLIST_MARIA;
+    return DEMO_CHECKLIST_MARIA;
   }
 
   const systemPrompt = `Generate a pre-visit checklist of 3-5 items for a patient. Return ONLY a JSON array of strings. No markdown. Always end with "Write down any questions you want to ask your doctor."`;
@@ -429,7 +436,7 @@ async function generatePreVisitChecklist(diagnosis, prescription) {
     return JSON.parse(cleaned);
   } catch (error) {
     console.log("[LLM] Falling back to demo-cache checklist");
-    return demoCache.DEMO_CHECKLIST_MARIA;
+    return DEMO_CHECKLIST_MARIA;
   }
 }
 
@@ -437,7 +444,7 @@ async function generatePreVisitChecklist(diagnosis, prescription) {
 // FUNCTION 6: SEVERITY DETECTION (Bonus — empathy calibration)
 // ==================================================================
 
-async function detectSeverity(diagnosis) {
+export async function detectSeverity(diagnosis) {
   try {
     const raw = await callClaude(
       `Classify this diagnosis as one word: mild, moderate, or serious. Respond with ONLY that one word.`,
@@ -456,7 +463,7 @@ async function detectSeverity(diagnosis) {
 // EXPORTS
 // ==================================================================
 
-module.exports = {
+export default {
   callClaude,
   callClaudeWithHistory,
   generateSummary,

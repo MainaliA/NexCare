@@ -1,5 +1,5 @@
 
-const DEMO_SUMMARY_MARIA = `## 🔍 What We Found
+export const DEMO_SUMMARY_MARIA = `## 🔍 What We Found
 
 You have **Type 2 Diabetes Mellitus** — this means your body is having trouble managing blood sugar levels on its own. Your HbA1c is 7.8% (a 3-month average of your blood sugar — ideally we'd like it closer to 7% or below).
 
@@ -23,14 +23,14 @@ The good news: this is very manageable, and your doctor has a clear plan.
 
 💬 Have questions? Tap **Ask About This** below to chat with your medical assistant.`;
 
-const DEMO_CHECKLIST_MARIA = [
+export const DEMO_CHECKLIST_MARIA = [
   "Fast for 12 hours before your appointment",
   "Bring your blood sugar log from the past 2 weeks",
   "Bring your food diary",
   "Write down any questions you want to ask your doctor",
 ];
 
-const DEMO_TRIAGE_EXPECTED = {
+export const DEMO_TRIAGE_EXPECTED = {
   assessment: "expected",
   confidence: 85,
   reasoning: "Mild nausea is a well-documented side effect of Metformin, particularly during the first 2 weeks of treatment.",
@@ -39,7 +39,7 @@ const DEMO_TRIAGE_EXPECTED = {
   urgency: "routine",
 };
 
-const DEMO_TRIAGE_ESCALATE = {
+export const DEMO_TRIAGE_ESCALATE = {
   assessment: "escalate",
   confidence: 92,
   reasoning: "Chest tightness in a patient with Type 2 Diabetes is a potential cardiovascular concern requiring prompt evaluation.",
@@ -48,17 +48,17 @@ const DEMO_TRIAGE_ESCALATE = {
   urgency: "urgent",
 };
 
-const DEMO_DAILY_REPORT_MARIA = `Maria took 2 of her 3 scheduled doses today — the evening Metformin was missed. She had 2 chatbot sessions, asking about Metformin side effects and dietary questions about fruit intake, suggesting active engagement with her treatment plan. No new symptoms were reported today. Weekly adherence stands at 81%, slightly below target.
+export const DEMO_DAILY_REPORT_MARIA = `Maria took 2 of her 3 scheduled doses today — the evening Metformin was missed. She had 2 chatbot sessions, asking about Metformin side effects and dietary questions about fruit intake, suggesting active engagement with her treatment plan. No new symptoms were reported today. Weekly adherence stands at 81%, slightly below target.
 
 **Status: MONITOR**`;
 
-const DEMO_CHAT_RESPONSES = {
+export const DEMO_CHAT_RESPONSES = {
   "side effects": "Metformin can sometimes cause stomach upset, nausea, or diarrhea, especially when you first start it. This usually gets better after the first week or two. Taking it with food — as your doctor recommended — helps a lot. If it doesn't improve after 2 weeks, mention it to Dr. Chen.",
   "hba1c": "Great question! HbA1c is a blood test showing your average blood sugar over 2-3 months. Think of it as a \"report card\" for blood sugar control. Yours was 7.8%, and the goal is to get closer to 7% or below. Your medicines and daily plan are designed to help bring that number down.",
   "fruit": "Your doctor recommends limiting carbs to about 45g per meal. Fruit has natural sugars that count toward that limit, but it's not off-limits! A small apple or handful of berries is fine. Pairing fruit with protein (like almonds) helps slow sugar absorption.",
 };
 
-module.exports = {
+export default {
   DEMO_SUMMARY_MARIA,
   DEMO_CHECKLIST_MARIA,
   DEMO_TRIAGE_EXPECTED,

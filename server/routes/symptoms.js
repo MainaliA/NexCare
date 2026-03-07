@@ -1,20 +1,16 @@
 
-const express = require("express");
-const { v4: uuidv4 } = require("uuid");
-const { triageSymptom } = require("./llm");
-const { authMiddleware } = require("../middleware/auth-compat");
+import express from "express";
+import { v4 as uuidv4 } from "uuid";
+import { triageSymptom } from "./llm.js";
+import { authMiddleware, requireRole } from "../middleware/auth.js";
 
 const router = express.Router();
 
 // POST /api/patient/symptoms
-router.post("/symptoms", authMiddleware, async (req, res) => {
+router.post("/symptoms", authMiddleware, requireRole("patient"), async (req, res) => {
   try {
     const db = req.app.get("db");
     const user = req.user;
-
-    if (!user || user.role !== "patient") {
-      return res.status(403).json({ error: "Only patients can report symptoms" });
-    }
 
     const { description, severity = "medium", appointmentId } = req.body;
 
@@ -128,4 +124,4 @@ router.post("/symptoms", authMiddleware, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
