@@ -1,8 +1,3 @@
-// server/demo-cache.js
-// ============================================================
-// PRE-CACHED RESPONSES — Insurance for the live demo
-// If Claude API is slow/down, these kick in automatically
-// ============================================================
 
 const DEMO_SUMMARY_MARIA = `## 🔍 What We Found
 
