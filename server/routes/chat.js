@@ -7,7 +7,7 @@
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const { chatWithContext, triageSymptom } = require("./llm");
-const { authMiddleware } = require("../middleware/auth");
+const { authMiddleware } = require("../middleware/auth-compat");
 
 const router = express.Router();
 
