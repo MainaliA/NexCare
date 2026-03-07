@@ -509,9 +509,7 @@ function DoctorScreen({ tasks, onBack, onPatientSummary }) {
   };
 
   const completed = tasks.filter((t) => t.done).length;
-  const adherence = selectedPatient.id === 1
-    ? Math.round((completed / tasks.length) * 100)
-    : selectedPatient.adherence;
+  const adherence = selectedPatient.adherence;
   const missed = tasks.filter((t) => !t.done);
 
   const adherenceColor = adherence >= 80 ? "text-emerald-400" : adherence >= 50 ? "text-yellow-400" : "text-red-400";
