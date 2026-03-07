@@ -1,0 +1,104 @@
+// schema.prisma — Fixed: added triageConfidence, ChatMessage relation, preVisitChecklist
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   // "patient" or "doctor"
+  createdAt    DateTime @default(now())
+
+  patientAppointments Appointment[] @relation("PatientAppointments")
+  doctorAppointments  Appointment[] @relation("DoctorAppointments")
+  symptoms            Symptom[]
+  actions             PatientAction[]
+  alertsReceived      Alert[]       @relation("DoctorAlerts")
+  alertsSent          Alert[]       @relation("PatientAlerts")
+}
+
+model Appointment {
+  id               String    @id @default(uuid())
+  patientId        String
+  doctorId         String
+  date             DateTime
+  status           String    @default("scheduled")
+  prescriptionText String?
+  diagnosisText    String?
+  dailyActions     String?
+  llmSummary       String?
+  preVisitChecklist String?
+  medicines        Medicine[]
+  symptoms         Symptom[]
+  chatMessages     ChatMessage[]
+
+  patient User @relation("PatientAppointments", fields: [patientId], references: [id])
+  doctor  User @relation("DoctorAppointments",  fields: [doctorId],  references: [id])
+}
+
+model Medicine {
+  id            String @id @default(uuid())
+  appointmentId String
+  name          String
+  dosage        String
+  frequency     String
+  times         String
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+}
+
+model Symptom {
+  id               String   @id @default(uuid())
+  patientId        String
+  appointmentId    String?
+  description      String
+  severity         String   @default("low")
+  triageResult     String?
+  triageReasoning  String?
+  triageConfidence Int?
+  reportedAt       DateTime @default(now())
+
+  patient     User         @relation(fields: [patientId], references: [id])
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+}
+
+model PatientAction {
+  id         String   @id @default(uuid())
+  patientId  String
+  actionType String
+  details    String?
+  timestamp  DateTime @default(now())
+
+  patient User @relation(fields: [patientId], references: [id])
+}
+
+model Alert {
+  id        String   @id @default(uuid())
+  patientId String
+  doctorId  String
+  type      String
+  message   String
+  status    String   @default("unread")
+  createdAt DateTime @default(now())
+
+  patient User @relation("PatientAlerts", fields: [patientId], references: [id])
+  doctor  User @relation("DoctorAlerts",  fields: [doctorId],  references: [id])
+}
+
+model ChatMessage {
+  id            String   @id @default(uuid())
+  appointmentId String
+  role          String
+  content       String
+  timestamp     DateTime @default(now())
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+}

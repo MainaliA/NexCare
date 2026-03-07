@@ -1,27 +1,40 @@
-# NexCare
+# NexCare — AI-Powered Patient-Doctor Platform
 
-GenAI healthcare assistant built at the Google DeepMind Frontier Hackathon.
+## Quick Start
 
-## Overview
-NexCare converts complex hospital discharge notes into simple instructions patients can understand and follow.
+```bash
+# Install dependencies
+npm install
 
-The goal is to improve patient comprehension and medication adherence after hospital visits.
+# Set up database
+npx prisma db push
+npm run db:seed
 
-## Features
-- AI summarization of discharge notes
-- Extraction of medication instructions
-- Patient-friendly explanations
+# Start dev server
+npm run dev
+```
 
-## Future Features
-- Patient medication checklist
-- Doctor dashboard to monitor adherence
-- Reminder notifications for patients
+Open [http://localhost:3000](http://localhost:3000)
+
+## Demo Accounts
+
+| Role    | Email             | Password    |
+|---------|-------------------|-------------|
+| Doctor  | doctor@demo.com   | doctor123   |
+| Patient | maria@demo.com    | patient123  |
+| Patient | james@demo.com    | patient123  |
+| Patient | lisa@demo.com     | patient123  |
+
+## Environment Variables
+
+Copy `.env.local.example` to `.env.local` and fill in your Anthropic API key.
+Set `FORCE_DEMO_CACHE=true` to use cached responses without an API key.
 
 ## Tech Stack
-React  
-Vite  
-JavaScript  
-Generative AI APIs
 
-## Hackathon
-Built during the Google DeepMind Frontier Gen-AI Hackathon (Cambridge).
+- **Next.js 15** (App Router)
+- **React 19**
+- **Tailwind CSS 3**
+- **Prisma + SQLite**
+- **Claude API** (Sonnet)
+- **jose** (JWT auth with httpOnly cookies)
