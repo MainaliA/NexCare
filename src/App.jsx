@@ -861,75 +861,68 @@ function LandingScreen({ onSelect }) {
   ];
 
   return (
-    <div className="bg-gray-900 min-h-screen">
-      <header className="absolute inset-x-0 top-0 z-50">
-        <nav className="flex items-center justify-between p-6 lg:px-8">
-          <span className="text-white text-sm font-bold tracking-widest uppercase">NexCare</span>
-          <span className="text-sm font-semibold text-slate-400">Frontier Hackathon 2026</span>
-        </nav>
-      </header>
+    <div className="min-h-screen relative flex flex-col items-center justify-center px-6">
+      {/* Background */}
+      <img
+        src="https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&w=2830&q=80"
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      <div className="absolute inset-0 bg-slate-950/64 backdrop-blur-sm" />
 
-      <div className="relative isolate overflow-hidden pt-14">
-        <img
-          src="https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&w=2830&q=80"
-          alt=""
-          className="absolute inset-0 -z-10 h-full w-full object-cover"
-        />
-        <div className="absolute inset-0 -z-10 bg-slate-950/55" />
+      {/* Nav */}
+      <div className="absolute top-0 inset-x-0 z-10 flex items-center justify-between px-8 py-6">
+        <span className="text-white text-sm font-bold tracking-widest uppercase">NexCare</span>
+        <span className="text-sm font-semibold text-slate-400">Frontier Hackathon 2026</span>
+      </div>
 
-        <div aria-hidden="true" className="absolute inset-x-0 -top-40 -z-10 overflow-hidden blur-3xl">
-          <div
-            style={{ clipPath: "polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)" }}
-            className="relative left-1/2 aspect-video w-full -translate-x-1/2 bg-gradient-to-tr from-pink-400 to-indigo-500 opacity-20"
-          />
+      {/* Content — vertically and horizontally centered */}
+      <div className="relative z-10 flex flex-col items-center text-center w-full max-w-2xl gap-5">
+
+        <div className="rounded-full px-3 py-1 text-xs text-slate-300/70 ring-1 ring-white/10">
+          AI-powered care coordination — built at Frontier 2026
         </div>
 
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl py-32 sm:py-48 lg:py-56">
-            <div className="hidden sm:mb-8 sm:flex sm:justify-center">
-              <div className="rounded-full px-3 py-1 text-sm text-gray-400 ring-1 ring-white/10">
-                AI-powered care coordination — built at Frontier 2026
-              </div>
-            </div>
-            <div className="text-center">
-              <h1 className="text-5xl font-bold tracking-tight text-white sm:text-6xl leading-tight">
-                Turn complex care instructions into clear action.
-              </h1>
-              <p className="mt-6 text-lg text-gray-400 sm:text-xl">
-                NexCare helps patients understand discharge instructions, complete next-step checklists, and keeps doctors informed when follow-through breaks down.
-              </p>
-              <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <button
-                  onClick={() => onSelect("patient")}
-                  className="w-56 rounded-xl bg-indigo-600 px-6 py-4 text-base font-semibold text-white shadow hover:bg-indigo-500 hover:scale-105 transition-all"
-                >
-                  Continue as Patient
-                </button>
-                <button
-                  onClick={() => onSelect("doctor")}
-                  className="w-56 rounded-xl bg-white px-6 py-4 text-base font-semibold text-gray-900 shadow hover:bg-gray-100 hover:scale-105 transition-all"
-                >
-                  Continue as Doctor
-                </button>
-              </div>
-              <div className="mt-14 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
-                {features.map((f) => (
-                  <div
-                    key={f.title}
-                    className="rounded-xl bg-slate-900/80 border border-slate-700 p-5 hover:border-indigo-600/50 hover:bg-slate-800/80 transition-all cursor-default"
-                  >
-                    <div className="text-2xl mb-2">{f.icon}</div>
-                    <h3 className="text-sm font-semibold text-white mb-1">{f.title}</h3>
-                    <p className="text-xs text-slate-400 leading-relaxed">{f.desc}</p>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-10 text-xs text-slate-500">
-                Does not diagnose or replace licensed clinicians. Designed to improve clarity, coordination, and adherence.
-              </p>
-            </div>
-          </div>
+        <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-white leading-tight">
+          <span className="text-indigo-400">NexCare</span> turns complex care instructions into clear action.
+        </h1>
+
+        <p className="text-lg sm:text-xl leading-relaxed" style={{ color: "rgba(203, 213, 225, 0.85)" }}>
+          NexCare helps patients understand discharge instructions, complete next-step checklists, and keeps doctors informed when follow-through breaks down.
+        </p>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full mt-2">
+          <button
+            onClick={() => onSelect("patient")}
+            className="w-56 rounded-xl bg-indigo-600 px-6 py-4 text-base font-semibold text-white shadow hover:bg-indigo-500 hover:scale-105 transition-all"
+          >
+            Continue as Patient
+          </button>
+          <button
+            onClick={() => onSelect("doctor")}
+            className="w-56 rounded-xl bg-white px-6 py-4 text-base font-semibold text-gray-900 shadow hover:bg-gray-100 hover:scale-105 transition-all"
+          >
+            Continue as Doctor
+          </button>
         </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full mt-2">
+          {features.map((f) => (
+            <div
+              key={f.title}
+              className="rounded-xl bg-slate-900/80 border border-slate-700 p-4 hover:border-indigo-600/50 hover:bg-slate-800/80 transition-all cursor-default text-left"
+            >
+              <div className="text-xl mb-1">{f.icon}</div>
+              <h3 className="text-sm font-semibold text-white mb-1">{f.title}</h3>
+              <p className="text-xs leading-relaxed" style={{ color: "rgba(148, 163, 184, 0.9)" }}>{f.desc}</p>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-xs" style={{ color: "rgba(148, 163, 184, 0.55)" }}>
+          Does not diagnose or replace licensed clinicians. Designed to improve clarity, coordination, and adherence.
+        </p>
+
       </div>
     </div>
   );
