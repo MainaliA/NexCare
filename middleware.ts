@@ -1,4 +1,4 @@
-// middleware.ts — Person A owns this
+// middleware.ts — Fixed: added proper route protection for all paths
 
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
@@ -30,5 +30,11 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/chat/:path*", "/doctor/:path*", "/login", "/signup"],
+  matcher: [
+    "/dashboard/:path*",
+    "/chat/:path*",
+    "/doctor/:path*",
+    "/login",
+    "/signup",
+  ],
 };

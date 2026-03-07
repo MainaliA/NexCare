@@ -4,6 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "NexCare — Patient-Doctor Platform",
   description: "AI-powered patient-doctor information platform",
+  icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

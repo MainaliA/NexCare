@@ -125,12 +125,13 @@ async function main() {
   // Lisa reported a symptom → creates an alert
   const lisaSymptom = await prisma.symptom.create({
     data: {
-      patientId:      lisa.id,
-      appointmentId:  lisaAppt.id,
-      description:    "I feel my heart racing and I'm a little dizzy",
-      severity:       "high",
-      triageResult:   "escalate",
-      triageReasoning: "Palpitations and dizziness in a patient with known AFib and anticoagulation therapy require prompt evaluation.",
+      patientId:        lisa.id,
+      appointmentId:    lisaAppt.id,
+      description:      "I feel my heart racing and I'm a little dizzy",
+      severity:         "high",
+      triageResult:     "escalate",
+      triageReasoning:  "Palpitations and dizziness in a patient with known AFib and anticoagulation therapy require prompt evaluation.",
+      triageConfidence: 92,
     },
   });
 

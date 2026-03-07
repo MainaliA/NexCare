@@ -1,4 +1,4 @@
-// POST /api/patient/symptoms — Person B
+// POST /api/patient/symptoms — Fixed: saves triageConfidence field
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser }            from "@/lib/auth";
@@ -32,15 +32,16 @@ export async function POST(req: NextRequest) {
   // Run AI triage
   const triage = await triageSymptom(description, severity, diagnosis, prescription);
 
-  // Save symptom
+  // Save symptom — now includes triageConfidence
   await prisma.symptom.create({
     data: {
-      patientId:       user.id,
-      appointmentId:   appointmentId ?? undefined,
+      patientId:        user.id,
+      appointmentId:    appointmentId ?? undefined,
       description,
       severity,
-      triageResult:    triage.assessment,
-      triageReasoning: triage.reasoning,
+      triageResult:     triage.assessment,
+      triageReasoning:  triage.reasoning,
+      triageConfidence: triage.confidence,
     },
   });
 
