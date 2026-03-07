@@ -97,7 +97,7 @@ function AddAppointmentPanel({ onClose, onSubmit }) {
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-slate-950/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="w-full max-w-lg bg-slate-900 border-l border-slate-800 flex flex-col h-full overflow-y-auto">
+      <div className="w-full max-w-lg bg-slate-900 border-l bord`er-slate-800 flex flex-col h-full overflow-y-auto">
 
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800">
           <div>
