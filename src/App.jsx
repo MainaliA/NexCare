@@ -1,12 +1,33 @@
 import { useState } from "react";
 
-// ─── Shared Mock Data ─────────────────────────────────────────────────────────
+// ─── Per-Patient Tasks ────────────────────────────────────────────────────────
 
-const initialTasks = [
-  { id: 1, label: "Take Lisinopril 10mg", done: false },
-  { id: 2, label: "Monitor blood pressure", done: false },
-  { id: 3, label: "Schedule follow-up with primary care physician", done: false },
-];
+const patientTasks = {
+  1: [
+    { id: 1, label: "Take Lisinopril 10mg", done: true },
+    { id: 2, label: "Monitor blood pressure", done: false },
+    { id: 3, label: "Schedule follow-up with primary care physician", done: true },
+  ],
+  2: [
+    { id: 1, label: "Take Metformin 500mg", done: true },
+    { id: 2, label: "Log glucose reading", done: true },
+    { id: 3, label: "30 min walk", done: false },
+  ],
+  3: [
+    { id: 1, label: "Take beta blocker (Atenolol)", done: false },
+    { id: 2, label: "Check heart rate", done: false },
+    { id: 3, label: "Avoid strenuous activity", done: true },
+  ],
+  4: [
+    { id: 1, label: "Use Ventolin inhaler", done: true },
+    { id: 2, label: "Log peak flow reading", done: true },
+    { id: 3, label: "Avoid known triggers", done: false },
+  ],
+};
+
+const initialTasks = patientTasks[1];
+
+// ─── Mock Patients ────────────────────────────────────────────────────────────
 
 const mockPatients = [
   {
@@ -90,7 +111,7 @@ const initialAlerts = [
   },
 ];
 
-// ─── Reusable Checkmark ───────────────────────────────────────────────────────
+// ─── Checkmark ────────────────────────────────────────────────────────────────
 
 function Checkmark({ size = 3 }) {
   return (
@@ -154,19 +175,14 @@ function AddAppointmentPanel({ onClose, onSubmit }) {
   };
 
   const addMedicine = () =>
-    setForm((f) => ({
-      ...f,
-      medicines: [...f.medicines, { name: "", dosage: "", frequency: "" }],
-    }));
+    setForm((f) => ({ ...f, medicines: [...f.medicines, { name: "", dosage: "", frequency: "" }] }));
 
   const removeMedicine = (i) =>
     setForm((f) => ({ ...f, medicines: f.medicines.filter((_, idx) => idx !== i) }));
 
   const handleSubmit = () => {
     setStep("loading");
-    const validMeds = form.medicines.filter(
-      (m) => m.name.trim() && m.dosage.trim() && m.frequency.trim()
-    );
+    const validMeds = form.medicines.filter((m) => m.name.trim() && m.dosage.trim() && m.frequency.trim());
     const medList = validMeds.length > 0
       ? validMeds.map((m) => `${m.name} ${m.dosage} (${m.frequency})`).join(", ")
       : "no medicines prescribed";
@@ -500,18 +516,17 @@ function DoctorScreen({ tasks, onBack, onPatientSummary }) {
   const [activeTab, setActiveTab] = useState("patients");
   const [rescheduleTarget, setRescheduleTarget] = useState(null);
   const [selectedPatient, setSelectedPatient] = useState(mockPatients[0]);
+  const [currentTasks, setCurrentTasks] = useState(patientTasks[1]);
   const [nudgeSent, setNudgeSent] = useState(false);
 
-  // Reset nudge when patient changes
   const handleSelectPatient = (p) => {
     setSelectedPatient(p);
+    setCurrentTasks(patientTasks[p.id]);
     setNudgeSent(false);
   };
 
-  const completed = tasks.filter((t) => t.done).length;
   const adherence = selectedPatient.adherence;
-  const missed = tasks.filter((t) => !t.done);
-
+  const missed = currentTasks.filter((t) => !t.done);
   const adherenceColor = adherence >= 80 ? "text-emerald-400" : adherence >= 50 ? "text-yellow-400" : "text-red-400";
   const unreadCount = alerts.filter((a) => a.status === "unread").length;
 
@@ -624,10 +639,9 @@ function DoctorScreen({ tasks, onBack, onPatientSummary }) {
 
       <main className="mx-auto max-w-6xl px-6 py-8 space-y-8">
 
-        {/* ── Patients Tab ── */}
         {activeTab === "patients" && (
           <>
-            {/* Selected Patient Card */}
+            {/* Selected Patient */}
             <div>
               <p className="text-slate-400 text-xs uppercase tracking-widest mb-3">Selected Patient</p>
               <div className="rounded-xl bg-slate-900 border border-slate-800 p-6">
@@ -637,23 +651,17 @@ function DoctorScreen({ tasks, onBack, onPatientSummary }) {
                     <p className="text-slate-400 text-sm mt-1">
                       {selectedPatient.age} yrs · {selectedPatient.condition} · Discharged {selectedPatient.discharge}
                     </p>
-                    <p className="text-slate-500 text-xs mt-1">
-                      Last data received: {selectedPatient.lastUpdated}
-                    </p>
+                    <p className="text-slate-500 text-xs mt-1">Last data received: {selectedPatient.lastUpdated}</p>
                   </div>
                   <div className={`text-5xl font-bold text-right ${adherenceColor}`}>
                     {adherence}%
                     <p className="text-sm font-normal text-slate-400 mt-1">adherence</p>
                   </div>
                 </div>
-
-                {/* AI Risk Score */}
                 <div className={`rounded-lg border px-4 py-3 flex items-start gap-3 ${risk.bg}`}>
                   <span className="text-lg">🤖</span>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-0.5">
-                      AI Risk Prediction
-                    </p>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-0.5">AI Risk Prediction</p>
                     <p className={`text-sm font-bold ${risk.text}`}>
                       {selectedPatient.riskScore} RISK
                       <span className="font-normal text-slate-400 ml-2">— {selectedPatient.riskReason}</span>
@@ -663,9 +671,9 @@ function DoctorScreen({ tasks, onBack, onPatientSummary }) {
               </div>
             </div>
 
-            {/* Task Status Grid */}
+            {/* Task Grid */}
             <div className="grid gap-4 sm:grid-cols-3">
-              {tasks.map((task) => (
+              {currentTasks.map((task) => (
                 <div
                   key={task.id}
                   className={`rounded-xl border p-5 flex items-start gap-3 ${
@@ -695,17 +703,12 @@ function DoctorScreen({ tasks, onBack, onPatientSummary }) {
                   ? "All tasks completed — no reminder needed today."
                   : `${selectedPatient.name} has ${missed.length} incomplete task${missed.length > 1 ? "s" : ""} today.`}
               </p>
-
-              {/* Message preview */}
               {missed.length > 0 && !nudgeSent && (
                 <div className="bg-slate-950 border border-slate-700 rounded-lg px-4 py-3 mb-4">
                   <p className="text-xs text-slate-500 uppercase tracking-widest mb-2">Message preview</p>
-                  <p className="text-slate-300 text-sm leading-relaxed italic">
-                    "{selectedPatient.nudgeMessage}"
-                  </p>
+                  <p className="text-slate-300 text-sm leading-relaxed italic">"{selectedPatient.nudgeMessage}"</p>
                 </div>
               )}
-
               {nudgeSent ? (
                 <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -737,7 +740,6 @@ function DoctorScreen({ tasks, onBack, onPatientSummary }) {
                   className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
                 />
               </div>
-
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {filteredPatients.map((p) => (
                   <div
@@ -779,7 +781,7 @@ function DoctorScreen({ tasks, onBack, onPatientSummary }) {
                 <h2 className="text-lg font-semibold mb-4">Recent Appointments</h2>
                 <div className="space-y-3">
                   {appointments.map((a, i) => (
-                    <div key={i} className="rounded-xl bg-slate-900 border border-slate-800 p-5 hover:border-slate-600 transition flex items-center justify-between">
+                    <div key={i} className="rounded-xl bg-slate-900 border border-slate-800 p-5 flex items-center justify-between">
                       <div>
                         <p className="font-semibold text-sm">{a.patientName}</p>
                         <p className="text-slate-400 text-xs mt-0.5">{a.date || "No date set"} · {a.diagnosis}</p>
@@ -795,7 +797,7 @@ function DoctorScreen({ tasks, onBack, onPatientSummary }) {
           </>
         )}
 
-        {/* ── Alerts Tab ── */}
+        {/* Alerts Tab */}
         {activeTab === "alerts" && (
           <div className="space-y-3">
             {alerts.filter((a) => a.status === "unread").length === 0 ? (
@@ -862,23 +864,19 @@ function LandingScreen({ onSelect }) {
 
   return (
     <div className="min-h-screen relative flex flex-col items-center justify-center px-6">
-      {/* Background */}
       <img
         src="https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&w=2830&q=80"
         alt=""
         className="absolute inset-0 h-full w-full object-cover"
       />
-      <div className="absolute inset-0 bg-slate-950/64 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-sm" />
 
-      {/* Nav */}
       <div className="absolute top-0 inset-x-0 z-10 flex items-center justify-between px-8 py-6">
         <span className="text-white text-sm font-bold tracking-widest uppercase">NexCare</span>
         <span className="text-sm font-semibold text-slate-400">Frontier Hackathon 2026</span>
       </div>
 
-      {/* Content — vertically and horizontally centered */}
       <div className="relative z-10 flex flex-col items-center text-center w-full max-w-2xl gap-5">
-
         <div className="rounded-full px-3 py-1 text-xs text-slate-300/70 ring-1 ring-white/10">
           AI-powered care coordination — built at Frontier 2026
         </div>
@@ -922,7 +920,6 @@ function LandingScreen({ onSelect }) {
         <p className="text-xs" style={{ color: "rgba(148, 163, 184, 0.55)" }}>
           Does not diagnose or replace licensed clinicians. Designed to improve clarity, coordination, and adherence.
         </p>
-
       </div>
     </div>
   );
