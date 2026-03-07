@@ -8,17 +8,59 @@ const initialTasks = [
   { id: 3, label: "Schedule follow-up with primary care physician", done: false },
 ];
 
-const mockPatient = {
-  name: "Sarah Chen",
-  age: 67,
-  condition: "Hypertension",
-  discharge: "March 5, 2026",
-};
-
 const mockPatients = [
-  { id: 1, name: "Sarah Chen", age: 67, condition: "Hypertension", adherence: 67, status: "yellow" },
-  { id: 2, name: "James Park", age: 45, condition: "Type 2 Diabetes", adherence: 90, status: "green" },
-  { id: 3, name: "Lisa Wong", age: 58, condition: "Heart Condition", adherence: 33, status: "red" },
+  {
+    id: 1,
+    name: "Sarah Chen",
+    age: 67,
+    condition: "Hypertension",
+    adherence: 67,
+    status: "yellow",
+    discharge: "March 5, 2026",
+    lastUpdated: "2 minutes ago",
+    riskScore: "MEDIUM",
+    riskReason: "1 missed medication + elevated BP readings",
+    nudgeMessage: "Hi Sarah — we noticed you haven't logged your blood pressure today. Please remember to take Lisinopril and record your reading.",
+  },
+  {
+    id: 2,
+    name: "James Park",
+    age: 45,
+    condition: "Type 2 Diabetes",
+    adherence: 90,
+    status: "green",
+    discharge: "February 28, 2026",
+    lastUpdated: "12 minutes ago",
+    riskScore: "LOW",
+    riskReason: "Strong medication adherence, no new symptoms",
+    nudgeMessage: "Hi James — great work staying on track! Just a reminder to log your glucose reading for today.",
+  },
+  {
+    id: 3,
+    name: "Lisa Wong",
+    age: 58,
+    condition: "Heart Condition",
+    adherence: 33,
+    status: "red",
+    discharge: "March 3, 2026",
+    lastUpdated: "1 hour ago",
+    riskScore: "HIGH",
+    riskReason: "2 missed medications + new symptoms reported",
+    nudgeMessage: "Hi Lisa — we noticed you've missed some medications and reported new symptoms. Please contact your doctor or call emergency services if you feel unwell.",
+  },
+  {
+    id: 4,
+    name: "Marco Rivera",
+    age: 52,
+    condition: "Asthma",
+    adherence: 85,
+    status: "green",
+    discharge: "March 1, 2026",
+    lastUpdated: "5 minutes ago",
+    riskScore: "LOW",
+    riskReason: "Consistent inhaler usage, no symptom reports",
+    nudgeMessage: "Hi Marco — just a reminder to log your inhaler usage for today and avoid known triggers.",
+  },
 ];
 
 const initialAlerts = [
@@ -65,7 +107,7 @@ function RescheduleModal({ patientName, onClose, onConfirm }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm">
       <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-sm mx-4">
-        <h3 className="text-lg font-semibold text-white mb-1">Reschedule Appointment</h3>
+        <h3 className="text-lg font-semibold text-white mb-1">Schedule Visit</h3>
         <p className="text-slate-400 text-sm mb-5">Select a new date for {patientName}</p>
         <input
           type="date"
@@ -132,8 +174,7 @@ function AddAppointmentPanel({ onClose, onSubmit }) {
     setTimeout(() => {
       setDoctorSummary(
         `Appointment confirmed for ${form.patientName}${form.date ? " on " + form.date : ""}. ` +
-        `Diagnosis: ${form.diagnosis}. ` +
-        `Prescribed: ${medList}. ` +
+        `Diagnosis: ${form.diagnosis}. Prescribed: ${medList}. ` +
         `Patient summary generated and sent to their dashboard.`
       );
       setPatientSummary(
@@ -141,7 +182,7 @@ function AddAppointmentPanel({ onClose, onSubmit }) {
         `In plain terms, this means your doctor has identified a condition that needs care and monitoring. ` +
         (validMeds.length > 0 ? `You have been prescribed: ${medList}. ` : "") +
         `Please take your medications as directed and follow your daily care checklist. ` +
-        `If you experience any unusual symptoms or feel unwell, use the symptom report button or contact your doctor directly.`
+        `If you experience any unusual symptoms, contact your doctor directly.`
       );
       setStep("summary");
     }, 1800);
@@ -156,7 +197,6 @@ function AddAppointmentPanel({ onClose, onSubmit }) {
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-slate-950/60 backdrop-blur-sm" onClick={onClose} />
       <div className="w-full max-w-lg bg-slate-900 border-l border-slate-800 flex flex-col h-full overflow-y-auto">
-
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800">
           <div>
             <h2 className="text-lg font-semibold text-white">New Appointment</h2>
@@ -170,7 +210,6 @@ function AddAppointmentPanel({ onClose, onSubmit }) {
         <div className="flex-1 px-6 py-6 space-y-5">
           {step === "form" && (
             <>
-              {/* Patient + Date row */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-medium text-slate-400 uppercase tracking-widest mb-1.5 block">Patient</label>
@@ -196,7 +235,6 @@ function AddAppointmentPanel({ onClose, onSubmit }) {
                 </div>
               </div>
 
-              {/* Diagnosis */}
               <div>
                 <label className="text-xs font-medium text-slate-400 uppercase tracking-widest mb-1.5 block">Diagnosis</label>
                 <textarea
@@ -208,7 +246,6 @@ function AddAppointmentPanel({ onClose, onSubmit }) {
                 />
               </div>
 
-              {/* Medicines */}
               <div>
                 <label className="text-xs font-medium text-slate-400 uppercase tracking-widest mb-1.5 block">Medicines</label>
                 <div className="space-y-3">
@@ -462,11 +499,21 @@ function DoctorScreen({ tasks, onBack, onPatientSummary }) {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("patients");
   const [rescheduleTarget, setRescheduleTarget] = useState(null);
+  const [selectedPatient, setSelectedPatient] = useState(mockPatients[0]);
   const [nudgeSent, setNudgeSent] = useState(false);
 
+  // Reset nudge when patient changes
+  const handleSelectPatient = (p) => {
+    setSelectedPatient(p);
+    setNudgeSent(false);
+  };
+
   const completed = tasks.filter((t) => t.done).length;
-  const adherence = Math.round((completed / tasks.length) * 100);
+  const adherence = selectedPatient.id === 1
+    ? Math.round((completed / tasks.length) * 100)
+    : selectedPatient.adherence;
   const missed = tasks.filter((t) => !t.done);
+
   const adherenceColor = adherence >= 80 ? "text-emerald-400" : adherence >= 50 ? "text-yellow-400" : "text-red-400";
   const unreadCount = alerts.filter((a) => a.status === "unread").length;
 
@@ -484,29 +531,37 @@ function DoctorScreen({ tasks, onBack, onPatientSummary }) {
 
   const handleConfirmReschedule = () =>
     setAlerts((prev) => prev.map((a) =>
-      a.id === rescheduleTarget.id ? { ...a, status: "read" } : a
+      a.id === rescheduleTarget?.id ? { ...a, status: "read" } : a
     ));
 
   const statusDotColor = (status) =>
     status === "green" ? "bg-emerald-400" : status === "yellow" ? "bg-yellow-400" : "bg-red-400";
 
+  const riskColors = {
+    LOW: { text: "text-emerald-400", bg: "bg-emerald-950 border-emerald-800" },
+    MEDIUM: { text: "text-yellow-400", bg: "bg-yellow-950/50 border-yellow-800/50" },
+    HIGH: { text: "text-red-400", bg: "bg-red-950 border-red-900" },
+  };
+
   const alertMeta = {
     escalation: {
-      label: "Escalation",
+      label: "🚨 Escalation",
       card: "bg-red-950 border-red-800",
       badge: "bg-red-500/20 text-red-400 border border-red-500/30",
     },
     missed_medicine: {
-      label: "Missed Medicine",
+      label: "💊 Missed Medication",
       card: "bg-yellow-950/40 border-yellow-800/50",
       badge: "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30",
     },
     new_symptom: {
-      label: "New Symptom",
+      label: "⚠️ New Symptom",
       card: "bg-yellow-950/40 border-yellow-800/50",
       badge: "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30",
     },
   };
+
+  const risk = riskColors[selectedPatient.riskScore] || riskColors.LOW;
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -574,19 +629,38 @@ function DoctorScreen({ tasks, onBack, onPatientSummary }) {
         {/* ── Patients Tab ── */}
         {activeTab === "patients" && (
           <>
-            {/* Selected Patient */}
+            {/* Selected Patient Card */}
             <div>
               <p className="text-slate-400 text-xs uppercase tracking-widest mb-3">Selected Patient</p>
-              <div className="rounded-xl bg-slate-900 border border-slate-800 p-6 flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold">{mockPatient.name}</h2>
-                  <p className="text-slate-400 text-sm mt-1">
-                    {mockPatient.age} yrs · {mockPatient.condition} · Discharged {mockPatient.discharge}
-                  </p>
+              <div className="rounded-xl bg-slate-900 border border-slate-800 p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h2 className="text-2xl font-bold">{selectedPatient.name}</h2>
+                    <p className="text-slate-400 text-sm mt-1">
+                      {selectedPatient.age} yrs · {selectedPatient.condition} · Discharged {selectedPatient.discharge}
+                    </p>
+                    <p className="text-slate-500 text-xs mt-1">
+                      Last data received: {selectedPatient.lastUpdated}
+                    </p>
+                  </div>
+                  <div className={`text-5xl font-bold text-right ${adherenceColor}`}>
+                    {adherence}%
+                    <p className="text-sm font-normal text-slate-400 mt-1">adherence</p>
+                  </div>
                 </div>
-                <div className={`text-5xl font-bold text-right ${adherenceColor}`}>
-                  {adherence}%
-                  <p className="text-sm font-normal text-slate-400 mt-1">adherence</p>
+
+                {/* AI Risk Score */}
+                <div className={`rounded-lg border px-4 py-3 flex items-start gap-3 ${risk.bg}`}>
+                  <span className="text-lg">🤖</span>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-0.5">
+                      AI Risk Prediction
+                    </p>
+                    <p className={`text-sm font-bold ${risk.text}`}>
+                      {selectedPatient.riskScore} RISK
+                      <span className="font-normal text-slate-400 ml-2">— {selectedPatient.riskReason}</span>
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -617,28 +691,29 @@ function DoctorScreen({ tasks, onBack, onPatientSummary }) {
 
             {/* Nudge Panel */}
             <div className="rounded-xl bg-slate-900 border border-slate-800 p-6">
-              <h3 className="font-semibold text-lg mb-1">Patient Nudge</h3>
-              <p className="text-slate-400 text-sm mb-5">
+              <h3 className="font-semibold text-lg mb-1">Send Reminder</h3>
+              <p className="text-slate-400 text-sm mb-4">
                 {missed.length === 0
-                  ? "All tasks completed — no nudge needed today."
-                  : `${mockPatient.name} has ${missed.length} incomplete task${missed.length > 1 ? "s" : ""} today.`}
+                  ? "All tasks completed — no reminder needed today."
+                  : `${selectedPatient.name} has ${missed.length} incomplete task${missed.length > 1 ? "s" : ""} today.`}
               </p>
-              {missed.length > 0 && (
-                <ul className="mb-5 space-y-1">
-                  {missed.map((t) => (
-                    <li key={t.id} className="text-sm text-red-400 flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />
-                      {t.label}
-                    </li>
-                  ))}
-                </ul>
+
+              {/* Message preview */}
+              {missed.length > 0 && !nudgeSent && (
+                <div className="bg-slate-950 border border-slate-700 rounded-lg px-4 py-3 mb-4">
+                  <p className="text-xs text-slate-500 uppercase tracking-widest mb-2">Message preview</p>
+                  <p className="text-slate-300 text-sm leading-relaxed italic">
+                    "{selectedPatient.nudgeMessage}"
+                  </p>
+                </div>
               )}
+
               {nudgeSent ? (
                 <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Reminder sent to {mockPatient.name}
+                  Reminder sent to {selectedPatient.name}
                 </div>
               ) : (
                 <button
@@ -646,7 +721,7 @@ function DoctorScreen({ tasks, onBack, onPatientSummary }) {
                   disabled={missed.length === 0}
                   className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed px-5 py-2.5 rounded-lg text-sm font-semibold transition"
                 >
-                  Send Nudge →
+                  Send Reminder →
                 </button>
               )}
             </div>
@@ -664,15 +739,21 @@ function DoctorScreen({ tasks, onBack, onPatientSummary }) {
                   className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
                 />
               </div>
-              <div className="grid gap-4 sm:grid-cols-3">
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {filteredPatients.map((p) => (
                   <div
                     key={p.id}
-                    className="rounded-xl bg-slate-900 border border-slate-800 p-5 hover:border-slate-600 transition cursor-pointer"
+                    onClick={() => handleSelectPatient(p)}
+                    className={`rounded-xl border p-5 cursor-pointer transition ${
+                      selectedPatient.id === p.id
+                        ? "bg-indigo-950 border-indigo-600"
+                        : "bg-slate-900 border-slate-800 hover:border-slate-600"
+                    }`}
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <p className="font-semibold text-white">{p.name}</p>
+                        <p className="font-semibold text-white text-sm">{p.name}</p>
                         <p className="text-slate-400 text-xs mt-0.5">{p.age} yrs · {p.condition}</p>
                       </div>
                       <span className={`w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ${statusDotColor(p.status)}`} />
@@ -751,7 +832,13 @@ function DoctorScreen({ tasks, onBack, onPatientSummary }) {
                           onClick={() => setRescheduleTarget({ id: alert.id, patientName: alert.patientName })}
                           className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg transition"
                         >
-                          Reschedule
+                          Schedule Visit
+                        </button>
+                        <button
+                          onClick={() => handleAcknowledge(alert.id)}
+                          className="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg transition"
+                        >
+                          Send Reminder
                         </button>
                       </div>
                     </div>
