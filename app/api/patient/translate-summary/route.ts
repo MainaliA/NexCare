@@ -1,10 +1,10 @@
-// POST /api/patient/translate-summary — Person B bonus: multilingual summary
+// POST /api/patient/translate-summary — multilingual summary (Gemini)
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser }            from "@/lib/auth";
-import Anthropic                     from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI }        from "@google/generative-ai";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 const LANGUAGE_NAMES: Record<string, string> = {
   es: "Spanish", hi: "Hindi", zh: "Simplified Chinese", tl: "Filipino (Tagalog)",
@@ -26,21 +26,16 @@ export async function POST(req: NextRequest) {
 
   const langName = LANGUAGE_NAMES[language] ?? language;
 
-  const msg = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 1500,
-    system: `Translate the following medical summary JSON into ${langName}.
-Keep all JSON keys in English. Only translate the string values.
-Maintain the same warm, simple tone.
-Respond ONLY with valid JSON matching the exact same structure.`,
-    messages: [{ role: "user", content: JSON.stringify(summary) }],
-  });
-
-  const block = msg.content[0];
-  if (block.type !== "text") throw new Error("bad response");
-
   try {
-    const cleaned = block.text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      systemInstruction: `Translate the following medical summary JSON into ${langName}.\nKeep all JSON keys in English. Only translate the string values.\nMaintain the same warm, simple tone.\nRespond ONLY with valid JSON matching the exact same structure.`,
+      generationConfig: { maxOutputTokens: 1500 },
+    });
+
+    const result = await model.generateContent(JSON.stringify(summary));
+    const text = result.response.text();
+    const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     return NextResponse.json(JSON.parse(cleaned));
   } catch {
     return NextResponse.json(summary); // fallback to original
