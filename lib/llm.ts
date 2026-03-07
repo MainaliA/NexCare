@@ -1,9 +1,10 @@
-// lib/llm.ts — MERGED: Person D's Express LLM + Person B's Next.js interface + demo cache fallbacks
+// lib/llm.ts — LLM provider: Google Gemini (free tier, no credit card required)
+// To swap back to Anthropic: revert import, client, callClaude, and chatWithContext live section
 
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || "" });
-const MODEL = "claude-sonnet-4-20250514";
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const MODEL = "gemini-2.5-flash";
 const FORCE_DEMO_CACHE = process.env.FORCE_DEMO_CACHE === "true";
 
 // ── Demo cache fallbacks ─────────────────────────────────────────────────────
@@ -35,10 +36,15 @@ const DEMO_TRIAGE_ESCALATE: TriageResult = {
 // ── Base helper ──────────────────────────────────────────────────────────────
 
 async function callClaude(systemPrompt: string, userMessage: string, maxTokens = 1024): Promise<string> {
-  const msg = await client.messages.create({ model: MODEL, max_tokens: maxTokens, system: systemPrompt, messages: [{ role: "user", content: userMessage }] });
-  const block = msg.content[0];
-  if (block.type !== "text") throw new Error("Unexpected response type");
-  return block.text;
+  const model = genAI.getGenerativeModel({
+    model: MODEL,
+    systemInstruction: systemPrompt,
+    generationConfig: { maxOutputTokens: maxTokens },
+  });
+  const result = await model.generateContent(userMessage);
+  const text = result.response.text();
+  if (!text) throw new Error("Empty response from Gemini");
+  return text;
 }
 
 // ── 1. Summary Generator ─────────────────────────────────────────────────────
@@ -138,7 +144,7 @@ export async function chatWithContext(
     };
   }
 
-  // ── Live Claude mode ──
+  // ── Live Gemini mode ──
   const system = `You are a friendly medical info assistant for ${patientName}. ONLY discuss info from these notes:
 
 DIAGNOSIS: ${diagnosis}
@@ -153,17 +159,22 @@ Rules:
 5. Keep responses to 2-4 sentences. Use simple, everyday language.
 6. If the patient describes a NEW SYMPTOM that is NOT already mentioned in the diagnosis or prescription notes above, respond warmly and then include this exact tag on its own line at the END of your response: [SYMPTOM_DETECTED: brief description of the symptom]. Only use this tag for genuinely new symptoms, not for things already covered in the notes.`;
 
-  const messages = [
-    ...history.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
-    { role: "user" as const, content: message },
-  ];
-
   try {
-    const msg = await client.messages.create({ model: MODEL, max_tokens: 512, system, messages });
-    const block = msg.content[0];
-    if (block.type !== "text") throw new Error("Unexpected response type");
+    const model = genAI.getGenerativeModel({
+      model: MODEL,
+      systemInstruction: system,
+      generationConfig: { maxOutputTokens: 512 },
+    });
 
-    const rawReply = block.text;
+    // Convert history to Gemini format (role "assistant" → "model")
+    const geminiHistory = history.map((m) => ({
+      role: m.role === "assistant" ? "model" as const : "user" as const,
+      parts: [{ text: m.content }],
+    }));
+
+    const chat = model.startChat({ history: geminiHistory });
+    const result = await chat.sendMessage(message);
+    const rawReply = result.response.text();
 
     // Parse [SYMPTOM_DETECTED: ...] tag
     const symptomMatch = rawReply.match(/\[SYMPTOM_DETECTED:\s*(.+?)\]/);
