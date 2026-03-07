@@ -21,6 +21,33 @@ const mockPatients = [
   { id: 3, name: "Lisa Wong", age: 58, condition: "Heart Condition", adherence: 33, status: "red" },
 ];
 
+const initialAlerts = [
+  {
+    id: 1,
+    patientName: "Lisa Wong",
+    type: "escalation",
+    message: "Patient reported chest tightness and shortness of breath. Triage flagged as urgent.",
+    timestamp: "Today, 9:42 AM",
+    status: "unread",
+  },
+  {
+    id: 2,
+    patientName: "Sarah Chen",
+    type: "missed_medicine",
+    message: "Patient has not logged blood pressure medication for 2 consecutive days.",
+    timestamp: "Today, 8:15 AM",
+    status: "unread",
+  },
+  {
+    id: 3,
+    patientName: "James Park",
+    type: "new_symptom",
+    message: "Patient reported unusual fatigue and mild dizziness after taking Metformin.",
+    timestamp: "Yesterday, 6:30 PM",
+    status: "unread",
+  },
+];
+
 // ─── Reusable Checkmark ───────────────────────────────────────────────────────
 
 function Checkmark({ size = 3 }) {
@@ -31,12 +58,45 @@ function Checkmark({ size = 3 }) {
   );
 }
 
-// ─── Add Appointment Slide-Over ───────────────────────────────────────────────
+// ─── Reschedule Modal ─────────────────────────────────────────────────────────
+
+function RescheduleModal({ patientName, onClose, onConfirm }) {
+  const [date, setDate] = useState("");
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm">
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-sm mx-4">
+        <h3 className="text-lg font-semibold text-white mb-1">Reschedule Appointment</h3>
+        <p className="text-slate-400 text-sm mb-5">Select a new date for {patientName}</p>
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white mb-5 focus:outline-none focus:border-indigo-500 transition"
+        />
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 border border-slate-700 px-4 py-2.5 rounded-lg text-sm text-slate-300 hover:text-white transition">
+            Cancel
+          </button>
+          <button
+            onClick={() => { onConfirm(date); onClose(); }}
+            disabled={!date}
+            className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition"
+          >
+            Confirm Date
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Add Appointment Panel ────────────────────────────────────────────────────
 
 function AddAppointmentPanel({ onClose, onSubmit }) {
   const [step, setStep] = useState("form");
   const [form, setForm] = useState({
     patientName: "",
+    date: "",
     diagnosis: "",
     medicines: [{ name: "", dosage: "", frequency: "" }],
   });
@@ -62,8 +122,6 @@ function AddAppointmentPanel({ onClose, onSubmit }) {
 
   const handleSubmit = () => {
     setStep("loading");
-
-    // Filter out incomplete medicine rows
     const validMeds = form.medicines.filter(
       (m) => m.name.trim() && m.dosage.trim() && m.frequency.trim()
     );
@@ -73,10 +131,10 @@ function AddAppointmentPanel({ onClose, onSubmit }) {
 
     setTimeout(() => {
       setDoctorSummary(
-        `Appointment created for ${form.patientName}. ` +
+        `Appointment confirmed for ${form.patientName}${form.date ? " on " + form.date : ""}. ` +
         `Diagnosis: ${form.diagnosis}. ` +
         `Prescribed: ${medList}. ` +
-        `Patient summary has been generated and sent to their dashboard.`
+        `Patient summary generated and sent to their dashboard.`
       );
       setPatientSummary(
         `You were seen by your doctor and diagnosed with ${form.diagnosis}. ` +
@@ -97,7 +155,7 @@ function AddAppointmentPanel({ onClose, onSubmit }) {
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-slate-950/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="w-full max-w-lg bg-slate-900 border-l bord`er-slate-800 flex flex-col h-full overflow-y-auto">
+      <div className="w-full max-w-lg bg-slate-900 border-l border-slate-800 flex flex-col h-full overflow-y-auto">
 
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800">
           <div>
@@ -112,20 +170,33 @@ function AddAppointmentPanel({ onClose, onSubmit }) {
         <div className="flex-1 px-6 py-6 space-y-5">
           {step === "form" && (
             <>
-              <div>
-                <label className="text-xs font-medium text-slate-400 uppercase tracking-widest mb-1.5 block">Patient</label>
-                <select
-                  value={form.patientName}
-                  onChange={(e) => set("patientName", e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white"
-                >
-                  <option value="">Select a patient...</option>
-                  {mockPatients.map((p) => (
-                    <option key={p.id} value={p.name}>{p.name}</option>
-                  ))}
-                </select>
+              {/* Patient + Date row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-slate-400 uppercase tracking-widest mb-1.5 block">Patient</label>
+                  <select
+                    value={form.patientName}
+                    onChange={(e) => set("patientName", e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition"
+                  >
+                    <option value="">Select patient...</option>
+                    {mockPatients.map((p) => (
+                      <option key={p.id} value={p.name}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-400 uppercase tracking-widest mb-1.5 block">Date</label>
+                  <input
+                    type="date"
+                    value={form.date}
+                    onChange={(e) => set("date", e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition"
+                  />
+                </div>
               </div>
 
+              {/* Diagnosis */}
               <div>
                 <label className="text-xs font-medium text-slate-400 uppercase tracking-widest mb-1.5 block">Diagnosis</label>
                 <textarea
@@ -133,10 +204,11 @@ function AddAppointmentPanel({ onClose, onSubmit }) {
                   onChange={(e) => set("diagnosis", e.target.value)}
                   rows={3}
                   placeholder="e.g. Hypertension — elevated blood pressure readings over 140/90..."
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-600 resize-none"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-600 resize-none focus:outline-none focus:border-indigo-500 transition"
                 />
               </div>
 
+              {/* Medicines */}
               <div>
                 <label className="text-xs font-medium text-slate-400 uppercase tracking-widest mb-1.5 block">Medicines</label>
                 <div className="space-y-3">
@@ -152,20 +224,20 @@ function AddAppointmentPanel({ onClose, onSubmit }) {
                         value={med.name}
                         onChange={(e) => updateMedicine(i, "name", e.target.value)}
                         placeholder="Medicine name"
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-600"
+                        className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition"
                       />
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           value={med.dosage}
                           onChange={(e) => updateMedicine(i, "dosage", e.target.value)}
                           placeholder="Dosage (e.g. 10mg)"
-                          className="bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-600"
+                          className="bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition"
                         />
                         <input
                           value={med.frequency}
                           onChange={(e) => updateMedicine(i, "frequency", e.target.value)}
                           placeholder="Frequency (e.g. once daily)"
-                          className="bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-600"
+                          className="bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition"
                         />
                       </div>
                     </div>
@@ -279,7 +351,6 @@ function PatientScreen({ tasks, onToggle, onBack, patientSummary }) {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-10 grid gap-6 lg:grid-cols-2">
-        {/* Left — input */}
         <div className="rounded-xl bg-slate-900 p-6 border border-slate-800">
           <h2 className="text-xl font-semibold mb-4">Medical Document</h2>
           <textarea
@@ -307,10 +378,7 @@ function PatientScreen({ tasks, onToggle, onBack, patientSummary }) {
           </div>
         </div>
 
-        {/* Right — output, priority ordered */}
         <div className="space-y-4">
-
-          {/* 1. Doctor-sent care plan — most prominent */}
           {patientSummary && (
             <div className="rounded-xl p-5 bg-gradient-to-br from-indigo-900/80 to-slate-900 border border-indigo-600/50">
               <div className="flex items-center gap-2 mb-3">
@@ -323,7 +391,6 @@ function PatientScreen({ tasks, onToggle, onBack, patientSummary }) {
             </div>
           )}
 
-          {/* 2. Plain Language Summary */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
             <h3 className="font-semibold text-lg mb-2">Plain Language Summary</h3>
             {loading ? (
@@ -338,7 +405,6 @@ function PatientScreen({ tasks, onToggle, onBack, patientSummary }) {
             )}
           </div>
 
-          {/* 3. Medications */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
             <h3 className="font-semibold text-lg mb-2">Medications</h3>
             {result ? (
@@ -355,7 +421,6 @@ function PatientScreen({ tasks, onToggle, onBack, patientSummary }) {
             )}
           </div>
 
-          {/* 4. Checklist — redesigned rows */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
             <h3 className="font-semibold text-lg mb-3">Today's Care Checklist</h3>
             <ul className="space-y-2">
@@ -377,9 +442,7 @@ function PatientScreen({ tasks, onToggle, onBack, patientSummary }) {
                   <span className={`text-sm transition ${task.done ? "line-through text-slate-500" : "text-slate-200"}`}>
                     {task.label}
                   </span>
-                  {task.done && (
-                    <span className="ml-auto text-xs text-emerald-500 font-medium">Done</span>
-                  )}
+                  {task.done && <span className="ml-auto text-xs text-emerald-500 font-medium">Done</span>}
                 </li>
               ))}
             </ul>
@@ -393,35 +456,75 @@ function PatientScreen({ tasks, onToggle, onBack, patientSummary }) {
 // ─── Doctor Screen ────────────────────────────────────────────────────────────
 
 function DoctorScreen({ tasks, onBack, onPatientSummary }) {
-  const [nudgeSent, setNudgeSent] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const [appointments, setAppointments] = useState([]);
+  const [alerts, setAlerts] = useState(initialAlerts);
+  const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState("patients");
+  const [rescheduleTarget, setRescheduleTarget] = useState(null);
+  const [nudgeSent, setNudgeSent] = useState(false);
 
   const completed = tasks.filter((t) => t.done).length;
-  const total = tasks.length;
-  const adherence = Math.round((completed / total) * 100);
+  const adherence = Math.round((completed / tasks.length) * 100);
   const missed = tasks.filter((t) => !t.done);
-
   const adherenceColor = adherence >= 80 ? "text-emerald-400" : adherence >= 50 ? "text-yellow-400" : "text-red-400";
-  const barColor = adherence >= 80 ? "bg-emerald-400" : adherence >= 50 ? "bg-yellow-400" : "bg-red-400";
+  const unreadCount = alerts.filter((a) => a.status === "unread").length;
+
+  const filteredPatients = mockPatients.filter((p) =>
+    p.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   const handleNewAppointment = (data) => {
     setAppointments((prev) => [data, ...prev]);
     onPatientSummary(data.patientSummary);
   };
 
-  const statusDot = (status) => {
-    if (status === "green") return "bg-emerald-400";
-    if (status === "yellow") return "bg-yellow-400";
-    return "bg-red-400";
+  const handleAcknowledge = (id) =>
+    setAlerts((prev) => prev.map((a) => a.id === id ? { ...a, status: "read" } : a));
+
+  const handleConfirmReschedule = () =>
+    setAlerts((prev) => prev.map((a) =>
+      a.id === rescheduleTarget.id ? { ...a, status: "read" } : a
+    ));
+
+  const statusDotColor = (status) =>
+    status === "green" ? "bg-emerald-400" : status === "yellow" ? "bg-yellow-400" : "bg-red-400";
+
+  const alertMeta = {
+    escalation: {
+      label: "Escalation",
+      card: "bg-red-950 border-red-800",
+      badge: "bg-red-500/20 text-red-400 border border-red-500/30",
+    },
+    missed_medicine: {
+      label: "Missed Medicine",
+      card: "bg-yellow-950/40 border-yellow-800/50",
+      badge: "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30",
+    },
+    new_symptom: {
+      label: "New Symptom",
+      card: "bg-yellow-950/40 border-yellow-800/50",
+      badge: "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30",
+    },
   };
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       {showPanel && (
-        <AddAppointmentPanel onClose={() => setShowPanel(false)} onSubmit={handleNewAppointment} />
+        <AddAppointmentPanel
+          onClose={() => setShowPanel(false)}
+          onSubmit={handleNewAppointment}
+        />
+      )}
+      {rescheduleTarget && (
+        <RescheduleModal
+          patientName={rescheduleTarget.patientName}
+          onClose={() => setRescheduleTarget(null)}
+          onConfirm={handleConfirmReschedule}
+        />
       )}
 
+      {/* Header */}
       <header className="border-b border-slate-800">
         <div className="mx-auto max-w-6xl px-6 py-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -442,138 +545,220 @@ function DoctorScreen({ tasks, onBack, onPatientSummary }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-10 space-y-8">
-
-        {/* 1. Selected Patient — primary focus */}
-        <div>
-          <p className="text-slate-400 text-xs uppercase tracking-widest mb-3">Selected Patient</p>
-          <div className="rounded-xl bg-slate-900 border border-slate-800 p-6 flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold">{mockPatient.name}</h2>
-              <p className="text-slate-400 text-sm mt-1">
-                {mockPatient.age} yrs · {mockPatient.condition} · Discharged {mockPatient.discharge}
-              </p>
-            </div>
-            <div className={`text-5xl font-bold text-right ${adherenceColor}`}>
-              {adherence}%
-              <p className="text-sm font-normal text-slate-400 mt-1">adherence</p>
-            </div>
-          </div>
-        </div>
-
-        {/* 2. Task status grid */}
-        <div className="grid gap-4 sm:grid-cols-3">
-          {tasks.map((task) => (
-            <div
-              key={task.id}
-              className={`rounded-xl border p-5 flex items-start gap-3 transition ${
-                task.done ? "bg-emerald-950 border-emerald-800" : "bg-red-950 border-red-900"
+      {/* Tabs */}
+      <div className="border-b border-slate-800">
+        <div className="mx-auto max-w-6xl px-6 flex gap-6">
+          {["patients", "alerts"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`py-4 text-sm font-medium border-b-2 transition flex items-center gap-2 capitalize ${
+                activeTab === tab
+                  ? "border-indigo-500 text-white"
+                  : "border-transparent text-slate-400 hover:text-white"
               }`}
             >
-              <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                task.done ? "bg-emerald-500 border-emerald-500" : "border-red-500"
-              }`}>
-                {task.done && <Checkmark size={3} />}
-              </div>
-              <div>
-                <p className="text-sm font-medium">{task.label}</p>
-                <p className={`text-xs mt-1 ${task.done ? "text-emerald-400" : "text-red-400"}`}>
-                  {task.done ? "Completed today" : "Not yet completed"}
-                </p>
-              </div>
-            </div>
+              {tab}
+              {tab === "alerts" && unreadCount > 0 && (
+                <span className="bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
           ))}
         </div>
+      </div>
 
-        {/* 3. Nudge Panel */}
-        <div className="rounded-xl bg-slate-900 border border-slate-800 p-6">
-          <h3 className="font-semibold text-lg mb-1">Patient Nudge</h3>
-          <p className="text-slate-400 text-sm mb-5">
-            {missed.length === 0
-              ? "All tasks completed — no nudge needed today."
-              : `${mockPatient.name} has ${missed.length} incomplete task${missed.length > 1 ? "s" : ""} today.`}
-          </p>
-          {missed.length > 0 && (
-            <ul className="mb-5 space-y-1">
-              {missed.map((t) => (
-                <li key={t.id} className="text-sm text-red-400 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />
-                  {t.label}
-                </li>
-              ))}
-            </ul>
-          )}
-          {nudgeSent ? (
-            <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Reminder sent to {mockPatient.name}
-            </div>
-          ) : (
-            <button
-              onClick={() => setNudgeSent(true)}
-              disabled={missed.length === 0}
-              className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed px-5 py-2.5 rounded-lg text-sm font-semibold transition"
-            >
-              Send Nudge →
-            </button>
-          )}
-        </div>
+      <main className="mx-auto max-w-6xl px-6 py-8 space-y-8">
 
-        {/* 4. All Patients grid */}
-        <div>
-          <h2 className="text-lg font-semibold mb-4">Your Patients</h2>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {mockPatients.map((p) => (
-              <div
-                key={p.id}
-                className="rounded-xl bg-slate-900 border border-slate-800 p-5 hover:border-slate-600 transition cursor-pointer"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <p className="font-semibold text-white">{p.name}</p>
-                    <p className="text-slate-400 text-xs mt-0.5">{p.age} yrs · {p.condition}</p>
-                  </div>
-                  <span className={`w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ${statusDot(p.status)}`} />
+        {/* ── Patients Tab ── */}
+        {activeTab === "patients" && (
+          <>
+            {/* Selected Patient */}
+            <div>
+              <p className="text-slate-400 text-xs uppercase tracking-widest mb-3">Selected Patient</p>
+              <div className="rounded-xl bg-slate-900 border border-slate-800 p-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">{mockPatient.name}</h2>
+                  <p className="text-slate-400 text-sm mt-1">
+                    {mockPatient.age} yrs · {mockPatient.condition} · Discharged {mockPatient.discharge}
+                  </p>
                 </div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs text-slate-500">Adherence</span>
-                  <span className={`text-sm font-bold ${p.adherence >= 80 ? "text-emerald-400" : p.adherence >= 50 ? "text-yellow-400" : "text-red-400"}`}>
-                    {p.adherence}%
-                  </span>
-                </div>
-                <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${p.adherence >= 80 ? "bg-emerald-400" : p.adherence >= 50 ? "bg-yellow-400" : "bg-red-400"}`}
-                    style={{ width: `${p.adherence}%` }}
-                  />
+                <div className={`text-5xl font-bold text-right ${adherenceColor}`}>
+                  {adherence}%
+                  <p className="text-sm font-normal text-slate-400 mt-1">adherence</p>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
 
-        {/* 5. Recent Appointments */}
-        {appointments.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold mb-4">Recent Appointments</h2>
-            <div className="space-y-3">
-              {appointments.map((a, i) => (
+            {/* Task Status Grid */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              {tasks.map((task) => (
                 <div
-                  key={i}
-                  className="rounded-xl bg-slate-900 border border-slate-800 p-5 hover:border-slate-600 transition"
+                  key={task.id}
+                  className={`rounded-xl border p-5 flex items-start gap-3 ${
+                    task.done ? "bg-emerald-950 border-emerald-800" : "bg-red-950 border-red-900"
+                  }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="font-semibold">{a.patientName}</p>
-                    <span className="text-xs text-emerald-400 bg-emerald-950 border border-emerald-800 px-2 py-0.5 rounded-full">
-                      Summary sent
-                    </span>
+                  <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    task.done ? "bg-emerald-500 border-emerald-500" : "border-red-500"
+                  }`}>
+                    {task.done && <Checkmark size={3} />}
                   </div>
-                  <p className="text-slate-400 text-sm">{a.diagnosis}</p>
+                  <div>
+                    <p className="text-sm font-medium">{task.label}</p>
+                    <p className={`text-xs mt-1 ${task.done ? "text-emerald-400" : "text-red-400"}`}>
+                      {task.done ? "Completed today" : "Not yet completed"}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
+
+            {/* Nudge Panel */}
+            <div className="rounded-xl bg-slate-900 border border-slate-800 p-6">
+              <h3 className="font-semibold text-lg mb-1">Patient Nudge</h3>
+              <p className="text-slate-400 text-sm mb-5">
+                {missed.length === 0
+                  ? "All tasks completed — no nudge needed today."
+                  : `${mockPatient.name} has ${missed.length} incomplete task${missed.length > 1 ? "s" : ""} today.`}
+              </p>
+              {missed.length > 0 && (
+                <ul className="mb-5 space-y-1">
+                  {missed.map((t) => (
+                    <li key={t.id} className="text-sm text-red-400 flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />
+                      {t.label}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {nudgeSent ? (
+                <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Reminder sent to {mockPatient.name}
+                </div>
+              ) : (
+                <button
+                  onClick={() => setNudgeSent(true)}
+                  disabled={missed.length === 0}
+                  className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed px-5 py-2.5 rounded-lg text-sm font-semibold transition"
+                >
+                  Send Nudge →
+                </button>
+              )}
+            </div>
+
+            {/* Search + Patient Grid */}
+            <div>
+              <div className="relative mb-4">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                </svg>
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search patients by name..."
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                {filteredPatients.map((p) => (
+                  <div
+                    key={p.id}
+                    className="rounded-xl bg-slate-900 border border-slate-800 p-5 hover:border-slate-600 transition cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <p className="font-semibold text-white">{p.name}</p>
+                        <p className="text-slate-400 text-xs mt-0.5">{p.age} yrs · {p.condition}</p>
+                      </div>
+                      <span className={`w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ${statusDotColor(p.status)}`} />
+                    </div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs text-slate-500">Adherence</span>
+                      <span className={`text-sm font-bold ${p.adherence >= 80 ? "text-emerald-400" : p.adherence >= 50 ? "text-yellow-400" : "text-red-400"}`}>
+                        {p.adherence}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${p.adherence >= 80 ? "bg-emerald-400" : p.adherence >= 50 ? "bg-yellow-400" : "bg-red-400"}`}
+                        style={{ width: `${p.adherence}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recent Appointments */}
+            {appointments.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold mb-4">Recent Appointments</h2>
+                <div className="space-y-3">
+                  {appointments.map((a, i) => (
+                    <div key={i} className="rounded-xl bg-slate-900 border border-slate-800 p-5 hover:border-slate-600 transition flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-sm">{a.patientName}</p>
+                        <p className="text-slate-400 text-xs mt-0.5">{a.date || "No date set"} · {a.diagnosis}</p>
+                      </div>
+                      <span className="text-xs text-emerald-400 bg-emerald-950 border border-emerald-800 px-2.5 py-1 rounded-full flex-shrink-0 ml-4">
+                        Summary sent
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Alerts Tab ── */}
+        {activeTab === "alerts" && (
+          <div className="space-y-3">
+            {alerts.filter((a) => a.status === "unread").length === 0 ? (
+              <div className="rounded-xl bg-slate-900 border border-slate-800 p-10 text-center">
+                <p className="text-emerald-400 font-medium text-sm">All clear — no active alerts</p>
+                <p className="text-slate-500 text-xs mt-1">Your patients are on track.</p>
+              </div>
+            ) : (
+              alerts.filter((a) => a.status === "unread").map((alert) => {
+                const meta = alertMeta[alert.type] || alertMeta.new_symptom;
+                return (
+                  <div key={alert.id} className={`rounded-xl border p-5 ${meta.card}`}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${meta.badge}`}>
+                            {meta.label}
+                          </span>
+                          <span className="text-xs text-slate-500">{alert.timestamp}</span>
+                        </div>
+                        <p className="text-sm font-semibold text-white mb-1">{alert.patientName}</p>
+                        <p className="text-sm text-slate-300 leading-relaxed">{alert.message}</p>
+                      </div>
+                      <div className="flex flex-col gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => handleAcknowledge(alert.id)}
+                          className="text-xs border border-slate-600 hover:border-slate-400 text-slate-300 hover:text-white px-3 py-1.5 rounded-lg transition"
+                        >
+                          Acknowledge
+                        </button>
+                        <button
+                          onClick={() => setRescheduleTarget({ id: alert.id, patientName: alert.patientName })}
+                          className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg transition"
+                        >
+                          Reschedule
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         )}
       </main>
@@ -621,16 +806,13 @@ function LandingScreen({ onSelect }) {
                 AI-powered care coordination — built at Frontier 2026
               </div>
             </div>
-
             <div className="text-center">
-              {/* Value prop is now the hero */}
               <h1 className="text-5xl font-bold tracking-tight text-white sm:text-6xl leading-tight">
                 Turn complex care instructions into clear action.
               </h1>
               <p className="mt-6 text-lg text-gray-400 sm:text-xl">
                 NexCare helps patients understand discharge instructions, complete next-step checklists, and keeps doctors informed when follow-through breaks down.
               </p>
-
               <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
                 <button
                   onClick={() => onSelect("patient")}
@@ -645,7 +827,6 @@ function LandingScreen({ onSelect }) {
                   Continue as Doctor
                 </button>
               </div>
-
               <div className="mt-14 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
                 {features.map((f) => (
                   <div
@@ -658,7 +839,6 @@ function LandingScreen({ onSelect }) {
                   </div>
                 ))}
               </div>
-
               <p className="mt-10 text-xs text-slate-500">
                 Does not diagnose or replace licensed clinicians. Designed to improve clarity, coordination, and adherence.
               </p>
