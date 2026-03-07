@@ -1,0 +1,99 @@
+// schema.prisma — Person A owns this file; everyone else reads from it
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   // "patient" or "doctor"
+  createdAt    DateTime @default(now())
+
+  patientAppointments Appointment[] @relation("PatientAppointments")
+  doctorAppointments  Appointment[] @relation("DoctorAppointments")
+  symptoms            Symptom[]
+  actions             PatientAction[]
+  alertsReceived      Alert[]       @relation("DoctorAlerts")
+  alertsSent          Alert[]       @relation("PatientAlerts")
+}
+
+model Appointment {
+  id               String    @id @default(uuid())
+  patientId        String
+  doctorId         String
+  date             DateTime
+  status           String    @default("scheduled") // scheduled | completed | cancelled
+  prescriptionText String?
+  diagnosisText    String?
+  dailyActions     String?   // Doctor's recommended daily actions (plain text)
+  llmSummary       String?   // Generated plain-language summary for patient
+  medicines        Medicine[]
+  symptoms         Symptom[]
+
+  patient User @relation("PatientAppointments", fields: [patientId], references: [id])
+  doctor  User @relation("DoctorAppointments",  fields: [doctorId],  references: [id])
+}
+
+model Medicine {
+  id            String @id @default(uuid())
+  appointmentId String
+  name          String
+  dosage        String
+  frequency     String
+  times         String // JSON array: ["08:00", "14:00", "20:00"]
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+}
+
+model Symptom {
+  id              String   @id @default(uuid())
+  patientId       String
+  appointmentId   String?
+  description     String
+  severity        String   @default("low") // low | medium | high
+  triageResult    String?  // expected | unexpected | escalate
+  triageReasoning String?
+  reportedAt      DateTime @default(now())
+
+  patient     User         @relation(fields: [patientId], references: [id])
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+}
+
+model PatientAction {
+  id         String   @id @default(uuid())
+  patientId  String
+  actionType String   // medicine_taken | chatbot_used | symptom_reported
+  details    String?  // JSON with context
+  timestamp  DateTime @default(now())
+
+  patient User @relation(fields: [patientId], references: [id])
+}
+
+model Alert {
+  id        String   @id @default(uuid())
+  patientId String
+  doctorId  String
+  type      String   // new_symptom | missed_medicine | escalation
+  message   String
+  status    String   @default("unread") // unread | read | acted_on
+  createdAt DateTime @default(now())
+
+  patient User @relation("PatientAlerts", fields: [patientId], references: [id])
+  doctor  User @relation("DoctorAlerts",  fields: [doctorId],  references: [id])
+}
+
+model ChatMessage {
+  id            String   @id @default(uuid())
+  appointmentId String
+  role          String   // user | assistant
+  content       String
+  timestamp     DateTime @default(now())
+}
