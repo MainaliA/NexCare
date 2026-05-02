@@ -17,9 +17,8 @@ npm install
 npx prisma db push
 npm run db:seed
 npm run dev
+# → http://localhost:3000
 ```
-
-Open [http://localhost:3000](http://localhost:3000)
 
 ## Demo Accounts
 
